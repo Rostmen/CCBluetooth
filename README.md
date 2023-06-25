@@ -23,7 +23,7 @@ Add this line to your dependencies list in your Package.swift:
 
 ## Usage
 
-```
+```swift
 let manager = CCBCentralManager()
 manager
     /// Scan peripheral with service uuid "3bdfdcee-13b1-11ee-be56-0242ac120002"
