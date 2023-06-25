@@ -29,7 +29,7 @@ public class CCBPeripheral {
     var provider: CCBPeripheralProvider
 
     /// The delegate wrapper that handles peripheral-specific events.
-    var delegateWrapper: CCBPeripheralSubjects?
+    var subjects: CCBPeripheralSubjects?
 
     /// The manager that handles characteristic notifications.
     private let notificationManager: CCBCharacteristicNotificationManager
@@ -61,14 +61,16 @@ public class CCBPeripheral {
     ///   - provider: The provider of peripheral-related functionalities.
     ///   - subjects: The delegate wrapper that handles peripheral-specific events.
     ///   - notificationManager: The manager that handles characteristic notifications.
-    init(manager: CCBCentralManager?, provider: CCBPeripheralProvider,
-         delegateWrapper: CCBPeripheralSubjects,
-         notificationManager: CCBCharacteristicNotificationManager
+    init(
+        manager: CCBCentralManager?,
+        provider: CCBPeripheralProvider,
+        subjects: CCBPeripheralSubjects,
+        notificationManager: CCBCharacteristicNotificationManager
     ) {
         self.manager = manager
         self.provider = provider
-        self.provider.subjects = delegateWrapper
-        self.delegateWrapper = delegateWrapper
+        self.provider.subjects = subjects
+        self.subjects = subjects
         self.notificationManager = notificationManager
     }
 
@@ -77,7 +79,7 @@ public class CCBPeripheral {
     ///   - manager: The manager that manages the Bluetooth central device.
     ///   - provider: The provider of peripheral-related functionalities.
     convenience init(manager: CCBCentralManager?, provider: CCBPeripheralProvider) {
-        self.init(manager: manager, provider: provider, delegateWrapper: .init(),
+        self.init(manager: manager, provider: provider, subjects: .init(),
                   notificationManager: .init(peripheral: provider))
     }
 
@@ -91,7 +93,7 @@ public class CCBPeripheral {
             guard
                 let self = self,
                 let manager = self.manager,
-                let delegateWrapper = self.delegateWrapper
+                let subjects = self.subjects
             else {
                 return .error(.destroyed)
             }
@@ -101,15 +103,13 @@ public class CCBPeripheral {
 
             return manager.ensure(
                 state: .poweredOn,
-                source: delegateWrapper
-                    .didDiscoverServicesSubject
-                    .services(identifier: identifier)
+                source: subjects.didDiscoverServicesSubject.services(identifier: identifier)
             )
         }
         .handleEvents(receiveSubscription: { [weak self] _ in
             guard let self = self else { return }
             if self.provider.subjects == nil {
-                self.provider.subjects = self.delegateWrapper
+                self.provider.subjects = self.subjects
             }
             self.provider.discoverServices(serviceUUIDs)
         })
@@ -120,22 +120,25 @@ public class CCBPeripheral {
     /// - Parameters:
     ///   - characteristicUUIDs: An array of `CBUUID` objects that you are interested in.
     ///   Here, each `CBUUID` object represents a characteristic UUID.
-    ///   - service: The `CCBServiceProvider` that specifies the service of the characteristics.
+    ///   - service: The `CCBService` that specifies the service of the characteristics.
     /// - Returns: Publisher with collection of discovered characteristics.
     public func discoverCharacteristics(
         _ characteristicUUIDs: [CBUUID]?,
-        for service: CCBServiceProvider
+        for service: CCBService
     ) -> CCBPublisher<[CCBCharacteristic]> {
         Deferred { [weak self] () -> CCBPublisher<[CCBCharacteristic]> in
-            guard let self = self, let delegateWrapper = self.delegateWrapper else {
+            guard let self = self, let subjects = self.subjects else {
                 return .error(.destroyed)
             }
 
-            return delegateWrapper
+            return subjects
                 .didDiscoverCharacteristicsForServiceSubject
                 .characteristics(serviceUUID: service.uuid)
                 .handleEvents(receiveSubscription: { [weak self] _ in
-                    self?.provider.discoverCharacteristics(characteristicUUIDs, for: service)
+                    self?.provider.discoverCharacteristics(
+                        characteristicUUIDs,
+                        for: service.provider
+                    )
                 })
                 .eraseToAnyPublisher()
         }
@@ -149,10 +152,10 @@ public class CCBPeripheral {
         for characteristic: CCBCharacteristic
     ) -> CCBPublisher<CCBCharacteristic> {
         Deferred { [weak self] () -> CCBPublisher<CCBCharacteristic> in
-            guard let self = self, let delegateWrapper = self.delegateWrapper else {
+            guard let self = self, let subjects = self.subjects else {
                 return .error(.destroyed)
             }
-            return delegateWrapper
+            return subjects
                 .didUpdateValueForCharacteristicSubject
                 .characteristic(
                     uuid: characteristic.uuid,
@@ -193,12 +196,12 @@ public class CCBPeripheral {
         type: CBCharacteristicWriteType
     ) -> CCBPublisher<CCBCharacteristic> {
         Deferred { [weak self] () -> CCBPublisher<CCBCharacteristic> in
-            guard let self = self, let delegateWrapper = self.delegateWrapper else {
+            guard let self = self, let subjects = self.subjects else {
                 return .error(.destroyed)
             }
             switch type {
                 case .withoutResponse:
-                    return delegateWrapper
+                    return subjects
                         .peripheralIsReadyToSendWriteWithoutResponseSubject
                         .map { _ in true }
                         .prepend(self.canSendWriteWithoutResponse)
@@ -210,7 +213,7 @@ public class CCBPeripheral {
                         .eraseToAnyPublisher()
                 case .withResponse:
                     return self.ensureValidPeripheralState(
-                        for: delegateWrapper
+                        for: subjects
                             .peripheralDidWriteValueForCharacteristicSubject
                             .characteristic(
                                 uuid: characteristic.uuid,

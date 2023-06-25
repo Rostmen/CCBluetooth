@@ -1,5 +1,5 @@
 //
-//  ServiceTypeMock.swift
+//  CCBServiceProviderMock.swift
 //  CCBluetoothTests
 //
 //  Created by Rostyslav Kobyzskyi on 2023.
@@ -24,7 +24,7 @@ import Foundation
 import CoreBluetooth
 @testable import CCBluetooth
 
-final class ServiceTypeMock: CCBServiceProvider {
+final class CCBServiceProviderMock: CCBServiceProvider {
     var uuid: CBUUID = CBUUID()
 
     var characteristics: [CBCharacteristic]? {
@@ -33,6 +33,4 @@ final class ServiceTypeMock: CCBServiceProvider {
                                 value: nil,
                                 permissions: .readable)]
     }
-
-
 }

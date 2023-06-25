@@ -53,7 +53,7 @@ public class CCBCentralManager {
     /// - Parameters:
     ///   - queue: The dispatch queue to use for delivering CBManager events. If nil, events are delivered on a main queue.
     ///   - options: A dictionary to customize the behavior of the CBManager.
-    public convenience init(queue: DispatchQueue? = nil, options: [String : Any]) {
+    public convenience init(queue: DispatchQueue? = nil, options: [String : Any] = [:]) {
         let subjects = CCBCentralManagerSubjects()
         let manager = CBCentralManager(delegate: subjects, queue: queue, options: options)
         self.init(provider: manager, subjects: subjects)
@@ -76,7 +76,7 @@ public class CCBCentralManager {
     ///   - services: The services to scan for, specified by UUID.
     ///   - options: Options for the scan, specified as a dictionary of values.
     public func scan(
-        services: [CBUUID]?,
+        services: [CBUUID]? = [],
         options: [String : Any]? = nil
     ) -> CCBPublisher<CCBScanResult> {
         Deferred { [weak self] () -> CCBPublisher<CCBScanResult> in

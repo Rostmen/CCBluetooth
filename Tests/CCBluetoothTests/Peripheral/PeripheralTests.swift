@@ -109,7 +109,8 @@ final class PeripheralTests: XCTestCase {
     }
 
     func testDiscoverCharacteristicsEmitsCharacteristicsArray() {
-        let serviceTypeMock = ServiceTypeMock()
+        let serviceTypeMock = CCBServiceProviderMock()
+        let serviceMock = CCBService(provider: serviceTypeMock)
         let peripheralTypeMock = PeripheralTypeMock()
         let mockCharacteristic = serviceTypeMock.characteristics!.first!
         sut = CCBPeripheral(manager: centralManagerMock,
@@ -119,7 +120,7 @@ final class PeripheralTests: XCTestCase {
         sut
             .discoverCharacteristics(
                 [mockCharacteristic.uuid],
-                for: serviceTypeMock
+                for: serviceMock
         )
             .sink(receiveCompletion: { _ in discoverExp.fulfill() },
                   receiveValue: { discoveredCharacteristics = $0 })
@@ -131,7 +132,7 @@ final class PeripheralTests: XCTestCase {
             error: nil
         )
 
-        sut.delegateWrapper = nil
+        sut.subjects = nil
         waitForExpectations(timeout: 0.01, handler: nil)
         XCTAssertEqual(discoveredCharacteristics?.first?.uuid,
                        serviceTypeMock.characteristics?.first?.uuid)
@@ -159,7 +160,7 @@ final class PeripheralTests: XCTestCase {
             didUpdateValueFor: characteristicTypeMock,
             error: nil)
 
-        sut.delegateWrapper = nil
+        sut.subjects = nil
         waitForExpectations(timeout: 0.01, handler: nil)
         XCTAssertEqual(readValue, characteristicTypeMock.value)
     }
@@ -189,7 +190,7 @@ final class PeripheralTests: XCTestCase {
             didWriteValueFor: characteristicTypeMock,
             error: nil
         )
-        sut.delegateWrapper = nil
+        sut.subjects = nil
         centralManagerMock.subjects = nil
         waitForExpectations(timeout: 0.01, handler: nil)
         XCTAssertEqual(characteristicUUID, characteristicTypeMock.uuid)
@@ -220,7 +221,7 @@ final class PeripheralTests: XCTestCase {
             didWriteValueFor: characteristicTypeMock,
             error: nil
         )
-        sut.delegateWrapper = nil
+        sut.subjects = nil
 
         waitForExpectations(timeout: 0.01, handler: nil)
         XCTAssertEqual(characteristicUUID, characteristicTypeMock.uuid)
@@ -250,7 +251,7 @@ final class PeripheralTests: XCTestCase {
             didUpdateValueFor: characteristicTypeMock,
             error: nil
         )
-        sut.delegateWrapper = nil
+        sut.subjects = nil
         centralManagerMock.subjects = nil
 
         waitForExpectations(timeout: 0.01, handler: nil)
